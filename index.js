@@ -1,10 +1,10 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const cors = require('cors')
 const app = express();
 const port = process.env.PORT || 5000;
 app.get('/', (req, res) => {
-    res.send('api server running');
+    res.send('eyetone server running');
 })
 app.use(cors())
 app.use(express.json())
@@ -13,27 +13,35 @@ app.use(express.json())
 // PLbsfr3s2xeiYadE
 
 const uri = "mongodb+srv://eyetone:PLbsfr3s2xeiYadE@cluster0.oejruqx.mongodb.net/?retryWrites=true&w=majority";
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+
 async function run() {
     try {
         const servicesCollection = client.db('eyetone').collection('services')
+        app.post('/services', async (req, res) => {
+            const service = req.body
+            const result = await servicesCollection.insertOne(service)
+            res.send(result)
+        })
+
         app.get('/services', async (req, res) => {
             const query = {}
             const cursor = servicesCollection.find(query)
-            const users = await cursor.toArray()
-            res.send(users)
+            const findServices = await cursor.toArray()
+            res.send(findServices)
         })
-        app.post('/services', async (req, res) => {
-            const user = req.body
-            const result = await servicesCollection.insertOne(user)
+        app.get('/services/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await servicesCollection.findOne(query)
             res.send(result)
         })
     }
-    catch { }
+    finally { }
 }
 
 
-run().catch(e = console.error(e))
+run().catch(e => console.error(e))
 app.listen(port, () => {
-    console.log('running server');
+    console.log(`Server running port at ${port}`);
 })
