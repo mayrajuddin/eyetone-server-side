@@ -18,6 +18,7 @@ const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 async function run() {
     try {
         const servicesCollection = client.db('eyetone').collection('services')
+        const reviewsCollection = client.db('eyetone').collection('reviews')
         app.post('/services', async (req, res) => {
             const service = req.body
             const result = await servicesCollection.insertOne(service)
@@ -34,6 +35,11 @@ async function run() {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await servicesCollection.findOne(query)
+            res.send(result)
+        })
+        app.post('/reviews', async (req, res) => {
+            const review = req.body
+            const result = await reviewsCollection.insertOne(review)
             res.send(result)
         })
     }
