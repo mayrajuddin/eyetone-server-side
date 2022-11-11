@@ -34,7 +34,6 @@ async function run() {
                 return res.send(findServices)
 
             }
-
             const cursor = servicesCollection.find({})
             const findServices = await cursor.toArray()
             res.send(findServices)
@@ -63,6 +62,26 @@ async function run() {
         app.post('/reviews', async (req, res) => {
             const review = req.body
             const result = await reviewsCollection.insertOne(review)
+            res.send(result)
+        })
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await reviewsCollection.findOne(query)
+            res.send(result)
+        })
+        app.put('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const review = req.body
+            const option = { upsert: true }
+            const updatedReview = {
+                $set: {
+                    ratings: review.ratings,
+                    message: review.message
+                }
+            }
+            const result = await reviewsCollection.updateOne(query, option, updatedReview)
             res.send(result)
         })
         app.delete('/reviews/:id', async (req, res) => {
