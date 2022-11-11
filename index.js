@@ -148,6 +148,7 @@ async function run() {
 
 
 run().catch(e => console.error(e))
+
 app.listen(port, () => {
     console.log(`Server running port at ${port}`);
 })
