@@ -1,13 +1,23 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const cors = require('cors')
+const moment = require('moment-timezone')
 const app = express();
+
 const port = process.env.PORT || 5000;
+
+
+
+app.use(cors())
+app.use(express.json())
+
+const timeNow = () => moment.tz(Date.now(), 'Asia/Dhaka').format();
+
+
+
 app.get('/', (req, res) => {
     res.send('eyetone server running');
 })
-app.use(cors())
-app.use(express.json())
 
 // eyetone
 // PLbsfr3s2xeiYadE
@@ -55,21 +65,24 @@ async function run() {
                     email: req.query.email
                 }
             }
-            const cursor = reviewsCollection.find(query)
+            const cursor = reviewsCollection.find(query).sort({ createdAt: -1 })
             const result = await cursor.toArray()
             res.send(result)
         })
+
         app.post('/reviews', async (req, res) => {
             const review = req.body
-            const result = await reviewsCollection.insertOne(review)
+            const result = await reviewsCollection.insertOne({ ...review, createdAt: timeNow() })
             res.send(result)
         })
+
         app.get('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await reviewsCollection.findOne(query)
             res.send(result)
         })
+
         app.put('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
@@ -81,7 +94,7 @@ async function run() {
                     message: review.message
                 }
             }
-            const result = await reviewsCollection.updateOne(query, option, updatedReview)
+            const result = await reviewsCollection.updateOne(query, updatedReview, option)
             res.send(result)
         })
         app.delete('/reviews/:id', async (req, res) => {
