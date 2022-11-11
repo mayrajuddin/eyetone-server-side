@@ -2,16 +2,41 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express')
 const cors = require('cors')
 const moment = require('moment-timezone')
+const jwt = require('jsonwebtoken')
+require('dotenv').config()
+
 const app = express();
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 
-
+// middlewares
 app.use(cors())
 app.use(express.json())
 
-const timeNow = () => moment.tz(Date.now(), 'Asia/Dhaka').format();
+// verifyToken middleware
+const verifyToken = (req, res, next) => {
+    try {
+        const authorization = req.headers.authorization;
+
+        if (!authorization) return res.status(401).send('Token is required !');
+
+        const token = authorization.split(' ')[1]
+
+        if (!token || token === 'null') return res.status(401).send('Unauthorized access !');
+
+        // decode toekn
+        const decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
+
+        req.decode = decode;
+
+        next()
+
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+
+}
 
 
 
@@ -22,14 +47,27 @@ app.get('/', (req, res) => {
 // eyetone
 // PLbsfr3s2xeiYadE
 
-const uri = "mongodb+srv://eyetone:PLbsfr3s2xeiYadE@cluster0.oejruqx.mongodb.net/?retryWrites=true&w=majority";
-const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+const client = new MongoClient(process.env.DB_URI, { serverApi: ServerApiVersion.v1 });
+const timeNow = () => moment.tz(Date.now(), 'Asia/Dhaka').format();
 
 async function run() {
     try {
         const servicesCollection = client.db('eyetone').collection('services')
         const reviewsCollection = client.db('eyetone').collection('reviews')
-        app.post('/services', async (req, res) => {
+
+        // create token
+        app.post('/create-token', async (req, res) => {
+            const email = req.body;
+
+            if (!email) return res.status(400).send("Email is required !");
+
+            const token = jwt.sign(email, process.env.JWT_SECRET_KEY, { expiresIn: "1d" });
+
+            return res.send({ token })
+        })
+
+
+        app.post('/services', verifyToken, async (req, res) => {
             const service = req.body
             const result = await servicesCollection.insertOne(service)
             res.send(result)
@@ -70,7 +108,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/reviews', async (req, res) => {
+        app.post('/reviews', verifyToken, async (req, res) => {
             const review = req.body
             const result = await reviewsCollection.insertOne({ ...review, createdAt: timeNow() })
             res.send(result)
@@ -83,7 +121,7 @@ async function run() {
             res.send(result)
         })
 
-        app.put('/reviews/:id', async (req, res) => {
+        app.put('/reviews/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const review = req.body
@@ -97,7 +135,8 @@ async function run() {
             const result = await reviewsCollection.updateOne(query, updatedReview, option)
             res.send(result)
         })
-        app.delete('/reviews/:id', async (req, res) => {
+
+        app.delete('/reviews/:id', verifyToken, async (req, res) => {
             const id = req.params.id
             const query = { _id: ObjectId(id) }
             const result = await reviewsCollection.deleteOne(query)
